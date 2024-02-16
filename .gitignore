@@ -1,0 +1,10 @@
+node_modules
+logs
+.env
+.vscode
+.history
+core
+.core
+/node_modules
+report
+.idea
