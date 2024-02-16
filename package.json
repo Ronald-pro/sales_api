@@ -1,0 +1,26 @@
+{
+  "name": "sales_api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "test": "jest --detectOpenHandles",
+    "start": "node app.js"
+  },
+  "keywords": [
+    "sales"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.4",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "moment": "^2.30.1",
+    "mysql2": "^3.9.1",
+    "sequelize": "^6.37.0",
+    "sequelize-cli": "^6.6.2"
+  }
+}
