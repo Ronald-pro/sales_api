@@ -1,40 +1,34 @@
-const Sequelize = require("sequelize");
+const sql = require("mssql");
 require("dotenv").config();
 
-const database = process.env.DB_NAME;
-const username = process.env.DB_USER;
-const password = process.env.DB_PASSWORD;
-const port = process.env.DB_PORT;
-const db_server = process.env.DB_SERVER;
+const config = {
+	user: process.env.DB_USER,
+	password: process.env.DB_PASSWORD,
+	server: process.env.DB_SERVER,
+	database: process.env.DB_NAME,
+	options: {
+		encrypt: true,
+		trustServerCertificate: true // Use this option if you're connecting to Azure SQL Database
+	},
+	port: parseInt(process.env.DB_PORT) || 1433,
+	connectionTimeout: 30000
+};
 
-const sequelize = new Sequelize(database, username, password, {
-  host: db_server,
-  port: port,
-  dialect: "mysql",
-    dialectOptions: {
-      connectTimeout: 4000000,
-    },
-    pool: {
-      max: 1000,
-      min: 0,
-      idle: 900000
-    },
-
-});
+const pool = new sql.ConnectionPool(config);
 
 const connect = async () => {
-  await sequelize
-    .authenticate()
-    .then(() => {
-      console.log("Connection has been established successfully.");
-    })
-    .catch(err => {
-      console.log("Unable to connect to the database:", err.message);
-    });
+	try {
+		await pool.connect();
+		console.log("Connection has been established successfully.");
+	} catch (err) {
+		console.error("Unable to connect to the database:", err.message);
+	}
 };
+
 const db = {
-  sequelize: sequelize,
-  connect
+	sql: sql,
+	pool: pool,
+	connect: connect
 };
 
 module.exports = db;

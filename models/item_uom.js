@@ -1,26 +1,26 @@
-const sequelize = require("../connection");
-const Sequelize = require("sequelize");
+const sql = require('mssql');
+const db = require('../connection');
 
-const Item_UOM = sequelize.sequelize.define(
+const Item_UOM = db.sql.define(
 	"dbo.de_item_uom",
 	{
 		ID: {
-			type: Sequelize.INTEGER,
+			type: sql.Int,
 			primaryKey: true,
 			autoIncrement: true,
             allowNull: false,
 			field: "ID"
 		},
 		ITEM_ID: {
-			type: Sequelize.INTEGER,
+			type: sql.Int,
 			field: "ITEM_ID"
 		},
 		PRICE: {
-			type: Sequelize.DOUBLE,
+			type: sql.DOUBLE,
 			field: "PRICE"
 		},
         COST: {
-			type: Sequelize.DOUBLE,
+			type: sql.DOUBLE,
 			field: "COST"
 		}
 	},

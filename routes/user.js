@@ -2,6 +2,7 @@ const express = require("express");
 const { User } = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const sql = require("mssql");
 
 const router = express.Router();
 
@@ -15,13 +16,21 @@ const secretKey = generateRandomKey();
 
 console.log("Generated Secret Key:", secretKey);
 
-// Authentication endpoint
 router.post("/login", async (req, res) => {
 	const { username, password } = req.body;
 
 	try {
-		// Retrieve user from the database
-		const user = await User.findOne({ where: { USERNAME: username } });
+		// Connect to the database using mssql
+		const pool = await sql.connect(); 
+
+		// Retrieve user
+		const result = await pool
+			.request()
+			.query(
+				`SELECT * FROM dbo.your_user_table WHERE USERNAME = '${username}'`
+			);
+
+		const user = result.recordset[0];
 
 		if (!user) {
 			return res.status(401).json({ message: "Invalid credentials" });
@@ -34,7 +43,7 @@ router.post("/login", async (req, res) => {
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
 
-		// Create a JWT token
+		// JWT token
 		const token = jwt.sign(
 			{
 				userId: user.USER_ID,

@@ -1,26 +1,26 @@
-const sequelize = require("../connection");
-const Sequelize = require("sequelize");
+const sql = require('mssql');
+const db = require('../connection');
 
-const Customer = sequelize.sequelize.define(
+const Customer = db.sql.define(
 	"dbo.de_person",
 	{
 		ID: {
-			type: Sequelize.INTEGER,
+			type: sql.Int,
 			primaryKey: true,
 			autoIncrement: true,
             allowNull: false,
 			field: "ID"
 		},
 		ADDRESS_ID: {
-			type: Sequelize.INTEGER,
+			type: sql.Int,
 			field: "ADDRESS_ID"
 		},
 		NAME: {
-			type: Sequelize.TEXT,
+			type: sql.NVarChar,
 			field: "NAME"
 		},
 		PHONE: {
-			type: Sequelize.TEXT,
+			type: sql.NVarChar,
 			field: "PHONE"
 		}
 	},
