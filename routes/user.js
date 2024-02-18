@@ -2,44 +2,45 @@ const express = require("express");
 const { User } = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const sql = require("mssql");
+const { sql, pool, connect } = require("../connection");
 
 const router = express.Router();
 
 const crypto = require("crypto");
 
 const generateRandomKey = () => {
-	return crypto.randomBytes(32).toString("hex"); // 32 bytes converted to a hexadecimal string
+	return crypto.randomBytes(32).toString("hex");
 };
 
 const secretKey = generateRandomKey();
 
-console.log("Generated Secret Key:", secretKey);
 
 router.post("/login", async (req, res) => {
+	await connect();
+
 	const { username, password } = req.body;
 
 	try {
-		// Connect to the database using mssql
-		const pool = await sql.connect(); 
-
 		// Retrieve user
 		const result = await pool
 			.request()
-			.query(
-				`SELECT * FROM dbo.your_user_table WHERE USERNAME = '${username}'`
-			);
+			.query(`SELECT * FROM dbo.me_users WHERE USERNAME = '${username}'`);
 
 		const user = result.recordset[0];
 
 		if (!user) {
+			console.log("User not found:", username);
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
 
 		// Compare the provided password with the hashed password in the database
-		const passwordMatch = await bcrypt.compare(password, user.PASSWORD2);
+		const passwordMatch = await bcrypt.compare(password, user.PASSWORD);
+
+		console.log("Provided Password:", password);
+		console.log("Stored Hashed Password:", user.PASSWORD);
 
 		if (!passwordMatch) {
+			console.log("Incorrect password for user:", username);
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
 
@@ -53,10 +54,11 @@ router.post("/login", async (req, res) => {
 			{ expiresIn: "1h" }
 		);
 
-		res.json({ token });
+		console.log("Login successful for user:", username);
+		res.json({ success: true, message: "Login successful", token });
 	} catch (error) {
 		console.error("Error during authentication:", error);
-		res.status(500).json({ message: "Internal server error" });
+		res.status(500).json({ success: false, message: "Internal server error" });
 	}
 });
 

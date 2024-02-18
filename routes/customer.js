@@ -4,12 +4,13 @@ const { sql, pool } = require("../connection");
 
 router.post("/add", async (req, res) => {
 	try {
-		await pool.connect(); // Ensure the connection is established before executing queries
+		await pool.connect(); // connection
 
 		let customer_name = req.body.customer_name;
 		let phone = req.body.phone;
 		let city = req.body.city;
 		let county = req.body.county;
+		let contact_person = req.body.contact_person;
 		const companyId = 1;
 
 		// Create address record
@@ -20,9 +21,7 @@ router.post("/add", async (req, res) => {
 
 			.query(
 				"INSERT INTO dbo.de_address (CITY, COUNTY) VALUES (@CITY, @COUNTY); SELECT SCOPE_IDENTITY() AS insertedAddressId",
-				{
-
-				}
+				{}
 			);
 
 		const addressId = addressResult.recordset[0].insertedAddressId;
@@ -34,12 +33,12 @@ router.post("/add", async (req, res) => {
 			.input("PHONE", sql.NVarChar, phone)
 			.input("ADDRESS_ID", sql.Int, addressId)
 			.input("COMPANY_ID", sql.Int, companyId)
+			.input("CONTACT_PERSON", sql.NVarChar, contact_person)
 			.query(
-				"INSERT INTO dbo.de_person (NAME, PHONE, ADDRESS_ID, COMPANY_ID) VALUES (@NAME, @PHONE, @ADDRESS_ID, @COMPANY_ID); SELECT SCOPE_IDENTITY() AS insertedCustomerId",
+				"INSERT INTO dbo.de_person (NAME, PHONE, ADDRESS_ID, COMPANY_ID, CONTACT_PERSON) VALUES (@NAME, @PHONE, @ADDRESS_ID, @COMPANY_ID, @CONTACT_PERSON); SELECT SCOPE_IDENTITY() AS insertedCustomerId",
 				{
-					// Pass the ADDRESS_ID as a parameter
 					ADDRESS_ID: sql.Int,
-					COMPANY_ID: sql.Int,
+					COMPANY_ID: sql.Int
 				}
 			);
 
@@ -47,17 +46,16 @@ router.post("/add", async (req, res) => {
 
 		return res.status(200).json({
 			success: true,
-			message: `Customer ${customer_name} was successfully added`,
-			customerId: customerId,
+			message: `Customer: ${customer_name} was successfully added`,
+			customerId: customerId
 		});
 	} catch (error) {
 		console.error(error);
 		return res.status(500).json({
 			success: false,
-			message: `Error occurred. Please try again.`,
+			message: `Error occurred. Please try again.`
 		});
 	}
 });
-
 
 module.exports = router;
