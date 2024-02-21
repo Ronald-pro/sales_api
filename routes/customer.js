@@ -1,26 +1,32 @@
 const express = require("express");
 const router = express.Router();
 const { sql, pool } = require("../connection");
+const { v4: uuidv4 } = require("uuid");
 
 router.post("/add", async (req, res) => {
 	try {
 		await pool.connect(); // connection
 
+
+		let customerUID = uuidv4();
 		let customer_name = req.body.customer_name;
 		let phone = req.body.phone;
 		let city = req.body.city;
 		let county = req.body.county;
 		let contact_person = req.body.contact_person;
 		const companyId = 1;
+		let class_name = 'CDECustomer';
+		let route = req.body.route;
 
 		// Create address record
 		const addressResult = await pool
 			.request()
 			.input("CITY", sql.NVarChar, city)
 			.input("COUNTY", sql.NVarChar, county)
+			.input("UID", sql.NVarChar, customerUID)
 
 			.query(
-				"INSERT INTO dbo.de_address (CITY, COUNTY) VALUES (@CITY, @COUNTY); SELECT SCOPE_IDENTITY() AS insertedAddressId",
+				"INSERT INTO dbo.de_address (UID, CITY, COUNTY) VALUES (@UID, @CITY, @COUNTY); SELECT SCOPE_IDENTITY() AS insertedAddressId",
 				{}
 			);
 
@@ -33,9 +39,12 @@ router.post("/add", async (req, res) => {
 			.input("PHONE", sql.NVarChar, phone)
 			.input("ADDRESS_ID", sql.Int, addressId)
 			.input("COMPANY_ID", sql.Int, companyId)
+			.input("CLASS_NAME", sql.NVarChar, class_name)
 			.input("CONTACT_PERSON", sql.NVarChar, contact_person)
+			.input("COMMENTS", sql.NVarChar, route)
+			.input("UID", sql.NVarChar, customerUID)
 			.query(
-				"INSERT INTO dbo.de_person (NAME, PHONE, ADDRESS_ID, COMPANY_ID, CONTACT_PERSON) VALUES (@NAME, @PHONE, @ADDRESS_ID, @COMPANY_ID, @CONTACT_PERSON); SELECT SCOPE_IDENTITY() AS insertedCustomerId",
+				"INSERT INTO dbo.de_person (UID, NAME, PHONE, ADDRESS_ID, COMPANY_ID, CONTACT_PERSON, CLASS_NAME, COMMENTS) VALUES (@UID, @NAME, @PHONE, @ADDRESS_ID, @COMPANY_ID, @CONTACT_PERSON, @CLASS_NAME, @COMMENTS); SELECT SCOPE_IDENTITY() AS insertedCustomerId",
 				{
 					ADDRESS_ID: sql.Int,
 					COMPANY_ID: sql.Int
