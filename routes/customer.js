@@ -7,7 +7,6 @@ router.post("/add", async (req, res) => {
 	try {
 		await pool.connect(); // connection
 
-
 		let customerUID = uuidv4();
 		let customer_name = req.body.customer_name;
 		let phone = req.body.phone;
@@ -15,7 +14,7 @@ router.post("/add", async (req, res) => {
 		let county = req.body.county;
 		let contact_person = req.body.contact_person;
 		const companyId = 1;
-		let class_name = 'CDECustomer';
+		let class_name = "CDECustomer";
 		let route = req.body.route;
 
 		// Create address record
@@ -63,6 +62,27 @@ router.post("/add", async (req, res) => {
 		return res.status(500).json({
 			success: false,
 			message: `Error occurred. Please try again.`
+		});
+	}
+});
+
+router.get("/all", async (req, res) => {
+	try {
+		const results = await pool.request().query(`
+		SELECT dp.ID, dp.NAME as customer_name, dp.PHONE as telephone, dp.COMMENTS as route, da.COUNTY as county FROM dbo.de_person dp
+		JOIN dbo.de_address da ON dp.ADDRESS_ID = da.ID
+
+		`);
+		return res.json({
+			success: true,
+			message: "Customers retrieved successfully.",
+			data: results.recordset
+		});
+	} catch (error) {
+		console.error("Error retrieving customers:", error.message);
+		return res.status(500).json({
+			success: false,
+			message: "Internal Server Error"
 		});
 	}
 });

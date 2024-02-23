@@ -33,7 +33,7 @@ async function processQueryAsync() {
 		return result.recordset;
 	} catch (error) {
 		console.error("Error processing query:", error.message);
-	
+
 		throw error;
 	}
 }
