@@ -22,6 +22,7 @@ async function processQueryAsync() {
             di.DESCRIPTION as Item_name,
             diu.COST,
             diu.PRICE,
+			diu.UOM_ID as UOM,
             db.DESCRIPTION as Branch_name,
             db.CODE
         FROM dbo.de_item di

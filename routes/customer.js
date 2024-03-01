@@ -16,6 +16,7 @@ router.post("/add", async (req, res) => {
 		const companyId = 1;
 		let class_name = "CDECustomer";
 		let route = req.body.route;
+		let pin_number = req.body.pin_number;
 
 		// Create address record
 		const addressResult = await pool
@@ -42,8 +43,9 @@ router.post("/add", async (req, res) => {
 			.input("CONTACT_PERSON", sql.NVarChar, contact_person)
 			.input("COMMENTS", sql.NVarChar, route)
 			.input("UID", sql.NVarChar, customerUID)
+			.input("PIN_NUMBER", sql.NVarChar, pin_number)
 			.query(
-				"INSERT INTO dbo.de_person (UID, NAME, PHONE, ADDRESS_ID, COMPANY_ID, CONTACT_PERSON, CLASS_NAME, COMMENTS) VALUES (@UID, @NAME, @PHONE, @ADDRESS_ID, @COMPANY_ID, @CONTACT_PERSON, @CLASS_NAME, @COMMENTS); SELECT SCOPE_IDENTITY() AS insertedCustomerId",
+				"INSERT INTO dbo.de_person (UID, NAME, PHONE, ADDRESS_ID, COMPANY_ID, CONTACT_PERSON, CLASS_NAME, COMMENTS, PIN_NUMBER) VALUES (@UID, @NAME, @PHONE, @ADDRESS_ID, @COMPANY_ID, @CONTACT_PERSON, @CLASS_NAME, @COMMENTS, @PIN_NUMBER); SELECT SCOPE_IDENTITY() AS insertedCustomerId",
 				{
 					ADDRESS_ID: sql.Int,
 					COMPANY_ID: sql.Int
@@ -69,8 +71,9 @@ router.post("/add", async (req, res) => {
 router.get("/all", async (req, res) => {
 	try {
 		const results = await pool.request().query(`
-		SELECT dp.ID, dp.NAME as customer_name, dp.PHONE as telephone, dp.COMMENTS as route, da.COUNTY as county FROM dbo.de_person dp
+		SELECT dp.ID, dp.NAME as customer_name, dp.PHONE as telephone, dp.COMMENTS as route, dp.CLASS_NAME as class_name, dp.PIN_NUMBER as pin_number, da.COUNTY as county FROM dbo.de_person dp
 		JOIN dbo.de_address da ON dp.ADDRESS_ID = da.ID
+		WHERE dp.CLASS_NAME='CDECustomer'
 
 		`);
 		return res.json({
