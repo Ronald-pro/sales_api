@@ -97,7 +97,6 @@ async function processQueryAsync() {
 // 			.input("TERMS_ID", sql.Int, terms)
 // 			.input("SHIP_VIA_ID", sql.Int, ship_via_id)
 
-
 // 			.query(
 // 				"INSERT INTO dbo.de_so (DOCUMENT_ID, CUSTOMER_NAME, UID, STATUS, CUSTOMER_ADDRESS_LINE, SHIP_TO_ADDRESS_LINE, TERMS_ID, SHIP_VIA_ID) VALUES (@DOCUMENT_ID, @CUSTOMER_NAME, @UID, @STATUS, @CUSTOMER_ADDRESS_LINE, @SHIP_TO_ADDRESS_LINE, @TERMS_ID, @SHIP_VIA_ID); SELECT SCOPE_IDENTITY() AS insertedOrder",
 // 				{
@@ -143,10 +142,10 @@ async function processQueryAsync() {
 // });
 
 router.post("/add/order", async (req, res) => {
-    try {
-        await pool.connect(); // connection
+	try {
+		await pool.connect(); // connection
 
-        let orderUID = uuidv4();
+		let orderUID = uuidv4();
 		let customer_name = req.body.customer_name;
 		let branch_id = req.body.branch_id;
 		let number = req.body.number;
@@ -160,56 +159,57 @@ router.post("/add/order", async (req, res) => {
 		let customer_address_line = " ";
 		let ship_address_line = " ";
 		let ship_via_id = 6;
+		let sys_owner = "SHOP";
 
-        // Ensure terms is provided in the request payload
+		// Ensure terms is provided in the request payload
 		let terms = req.body.cart_items[0].terms;
 		let item_id = req.body.cart_items[0].item_id;
 		let item_name = req.body.cart_items[0].item_name;
 		let price = req.body.cart_items[0].price;
 		let uom = req.body.cart_items[0].uom;
 		let qty = req.body.cart_items[0].qty;
-        if (!terms) {
-            return res.status(400).json({
-                success: false,
-                message: "Terms not provided."
-            });
-        }
+		if (!terms) {
+			return res.status(400).json({
+				success: false,
+				message: "Terms not provided."
+			});
+		}
 
-        // Calculate total_amount based on cart_items
-        const cartItems = req.body.cart_items;
-        let calculatedTotal = 0;
-        cartItems.forEach(item => {
-            calculatedTotal += item.price * item.qty;
-        });
+		// Calculate total_amount based on cart_items
+		const cartItems = req.body.cart_items;
+		let calculatedTotal = 0;
+		cartItems.forEach((item) => {
+			calculatedTotal += item.price * item.qty;
+		});
 
-        if (total_amount !== calculatedTotal) {
-            return res.status(400).json({
-                success: false,
-                message: `Total amount provided does not match calculated total.`
-            });
-        }
+		if (total_amount !== calculatedTotal) {
+			return res.status(400).json({
+				success: false,
+				message: `Total amount provided does not match calculated total.`
+			});
+		}
 
-        // Create order document record
-        const documentResult = await pool
-            .request()
-            .input("BRANCH_ID", sql.Int, branch_id)
-            .input("NUMBER", sql.NVarChar, number)
-            .input("TOTAL_AMOUNT", sql.Decimal, total_amount)
-            .input("CLASS_NAME", sql.NVarChar, class_name)
-            .input("DOC_STATUS_ID", sql.Int, doc_status_id)
-            .input("STATUS", sql.Int, status)
-            .input("UID", sql.NVarChar, orderUID)
-            .input("COMPANY_ID", sql.Int, companyId)
-            .input("DATE", sql.Date, new Date())
-            .query(
-                "INSERT INTO dbo.de_document (BRANCH_ID, NUMBER, TOTAL_AMOUNT, CLASS_NAME, DOC_STATUS_ID, STATUS, UID, COMPANY_ID, DATE) VALUES (@BRANCH_ID, @NUMBER, @TOTAL_AMOUNT, @CLASS_NAME, @DOC_STATUS_ID, @STATUS, @UID, @COMPANY_ID, @DATE); SELECT SCOPE_IDENTITY() AS insertedocument",
-                {}
-            );
+		// Create order document record
+		const documentResult = await pool
+			.request()
+			.input("BRANCH_ID", sql.Int, branch_id)
+			.input("NUMBER", sql.NVarChar, number)
+			.input("TOTAL_AMOUNT", sql.Decimal, total_amount)
+			.input("CLASS_NAME", sql.NVarChar, class_name)
+			.input("DOC_STATUS_ID", sql.Int, doc_status_id)
+			.input("STATUS", sql.Int, status)
+			.input("UID", sql.NVarChar, orderUID)
+			.input("COMPANY_ID", sql.Int, companyId)
+			.input("DATE", sql.Date, new Date())
+			.query(
+				"INSERT INTO dbo.de_document (BRANCH_ID, NUMBER, TOTAL_AMOUNT, CLASS_NAME, DOC_STATUS_ID, STATUS, UID, COMPANY_ID, DATE) VALUES (@BRANCH_ID, @NUMBER, @TOTAL_AMOUNT, @CLASS_NAME, @DOC_STATUS_ID, @STATUS, @UID, @COMPANY_ID, @DATE); SELECT SCOPE_IDENTITY() AS insertedocument",
+				{}
+			);
 
-        const documentId = documentResult.recordset[0].insertedocument;
+		const documentId = documentResult.recordset[0].insertedocument;
 
-        // Create order record
-        const orderResult = await pool
+		// Create order record
+		const orderResult = await pool
 			.request()
 			.input("DOCUMENT_ID", sql.Int, documentId)
 			.input("CUSTOMER_NAME", sql.NVarChar, customer_name)
@@ -220,7 +220,6 @@ router.post("/add/order", async (req, res) => {
 			.input("TERMS_ID", sql.Int, terms)
 			.input("SHIP_VIA_ID", sql.Int, ship_via_id)
 
-
 			.query(
 				"INSERT INTO dbo.de_so (DOCUMENT_ID, CUSTOMER_NAME, UID, STATUS, CUSTOMER_ADDRESS_LINE, SHIP_TO_ADDRESS_LINE, TERMS_ID, SHIP_VIA_ID) VALUES (@DOCUMENT_ID, @CUSTOMER_NAME, @UID, @STATUS, @CUSTOMER_ADDRESS_LINE, @SHIP_TO_ADDRESS_LINE, @TERMS_ID, @SHIP_VIA_ID); SELECT SCOPE_IDENTITY() AS insertedOrder",
 				{
@@ -228,44 +227,66 @@ router.post("/add/order", async (req, res) => {
 				}
 			);
 
-        const orderId = orderResult.recordset[0].insertedOrder;
+		const orderId = orderResult.recordset[0].insertedOrder;
 
-        // Create order details records
-        for (const item of cartItems) {
-            await pool
-                .request()
-                .input("SO_ID", sql.Int, orderId)
-                .input("ITEM_ID", sql.Int, item.item_id)
-                .input("ITEM_DESCRIPTION", sql.NVarChar, item.item_name)
-                .input("QTY", sql.Decimal, item.qty)
-                .input("PRICE", sql.Decimal, item.price)
-                .input("UOM_ID", sql.NVarChar, item.uom)
-                .input("BRANCH_ID", sql.Int, branch_id)
-                .query(
-                    "INSERT INTO dbo.de_so_detail (SO_ID, ITEM_ID, ITEM_DESCRIPTION, QTY, PRICE, UOM_ID, BRANCH_ID) VALUES (@SO_ID, @ITEM_ID, @ITEM_DESCRIPTION, @QTY, @PRICE, @UOM_ID, @BRANCH_ID);",
-                    {
-                        SO_ID: sql.Int,
-                        ITEM_ID: sql.Int,
-                        BRANCH_ID: sql.Int
-                    }
-                );
-        }
+		// Create order details records
+		for (const item of cartItems) {
+			await pool
+				.request()
+				.input("SO_ID", sql.Int, orderId)
+				.input("ITEM_ID", sql.Int, item.item_id)
+				.input("ITEM_DESCRIPTION", sql.NVarChar, item.item_name)
+				.input("QTY", sql.Decimal, item.qty)
+				.input("PRICE", sql.Decimal, item.price)
+				.input("UOM_ID", sql.NVarChar, item.uom)
+				.input("BRANCH_ID", sql.Int, branch_id)
+				.query(
+					"INSERT INTO dbo.de_so_detail (SO_ID, ITEM_ID, ITEM_DESCRIPTION, QTY, PRICE, UOM_ID, BRANCH_ID) VALUES (@SO_ID, @ITEM_ID, @ITEM_DESCRIPTION, @QTY, @PRICE, @UOM_ID, @BRANCH_ID);",
+					{
+						SO_ID: sql.Int,
+						ITEM_ID: sql.Int,
+						BRANCH_ID: sql.Int
+					}
+				);
+		}
 
-        return res.status(200).json({
-            success: true,
-            message: `Order Receipt No: ${orderId} was successfully created`,
-            Receipt_no: orderId
-        });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: `Error occurred. Please try again.`
-        });
-    }
+		// decrease stock
+		for (const item of cartItems) {
+			const reduceStockResult = await pool
+				.request()
+				.input("DOCUMENT_ID", sql.Int, documentId)
+				.input("OUT_QTY", sql.Decimal, item.qty)
+				.input("UID", sql.NVarChar, orderUID)
+				.input("COMPANY_ID", sql.Int, companyId)
+				.input("TOTAL_COST", sql.Decimal, calculatedTotal)
+				.input("STATUS", sql.Int, status)
+				.input("SYS_OWNER", sql.NVarChar, sys_owner)
+				.input("ITEM_ID", sql.Int, item.item_id)
+				.input("UOM_ID", sql.NVarChar, item.uom)
+				.input("BRANCH_ID", sql.Int, branch_id)
+
+				.query(
+					"INSERT INTO dbo.de_icj (DOCUMENT_ID, OUT_QTY, UID, COMPANY_ID, TOTAL_COST, STATUS, SYS_OWNER, ITEM_ID, UOM_ID, BRANCH_ID) VALUES (@DOCUMENT_ID, @OUT_QTY, @UID, @COMPANY_ID, @TOTAL_COST, @STATUS, @SYS_OWNER, @ITEM_ID, @UOM_ID, @BRANCH_ID); SELECT SCOPE_IDENTITY() AS insertedOrder",
+					{
+						DOCUMENT_ID: sql.Int
+					}
+				);
+
+			const reduceStockId = reduceStockResult.recordset[0].insertedOrder;
+		}
+		return res.status(200).json({
+			success: true,
+			message: `Order Receipt No: ${orderId} was successfully created`,
+			Receipt_no: orderId
+		});
+	} catch (error) {
+		console.error(error);
+		return res.status(500).json({
+			success: false,
+			message: `Error occurred. Please try again.`
+		});
+	}
 });
-
-
 
 router.get("/payment/terms", async (req, res) => {
 	try {
@@ -279,6 +300,29 @@ router.get("/payment/terms", async (req, res) => {
 		});
 	} catch (error) {
 		console.error("Error retrieving payment terms:", error.message);
+		return res.status(500).json({
+			success: false,
+			message: "Internal Server Error"
+		});
+	}
+});
+
+router.get("/all/orders", async (req, res) => {
+	try {
+		const results = await pool.request().query(`
+		SELECT db.DESCRIPTION as branch_name, d.QTY as qty, ds.CUSTOMER_NAME as customer_name, d.PRICE as price, d.ITEM_DESCRIPTION as item_name, d.UOM_ID as uom, ds.DATE_CREATED as date_created FROM dbo.de_so_detail d
+		JOIN dbo.de_branch db ON d.BRANCH_ID = db.ID
+        JOIN dbo.de_so ds ON d.SO_ID = ds.SO_ID
+        WHERE ds.COMPANY_ID=1
+
+		`);
+		return res.json({
+			success: true,
+			message: "Orders retrieved successfully.",
+			data: results.recordset
+		});
+	} catch (error) {
+		console.error("Error retrieving orders:", error.message);
 		return res.status(500).json({
 			success: false,
 			message: "Internal Server Error"
