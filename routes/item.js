@@ -307,14 +307,12 @@ router.get("/payment/terms", async (req, res) => {
 	}
 });
 
-router.get("/all/orders", async (req, res) => {
+router.get("/all/ordersss", async (req, res) => {
 	try {
 		const results = await pool.request().query(`
-		SELECT db.DESCRIPTION as branch_name, d.QTY as qty, ds.CUSTOMER_NAME as customer_name, d.PRICE as price, d.ITEM_DESCRIPTION as item_name, d.UOM_ID as uom, ds.DATE_CREATED as date_created FROM dbo.de_so_detail d
-		JOIN dbo.de_branch db ON d.BRANCH_ID = db.ID
-        JOIN dbo.de_so ds ON d.SO_ID = ds.SO_ID
-        WHERE ds.COMPANY_ID=1
 
+        SELECT ds.CUSTOMER_NAME as customer_name, dd.TOTAL_AMOUNT as total_amount, ds.DATE_CREATED as date_created FROM dbo.de_document dd
+        LEFT JOIN dbo.de_so ds ON dd.DOCUMENT_ID = ds.DOCUMENT_ID
 		`);
 		return res.json({
 			success: true,
@@ -329,5 +327,99 @@ router.get("/all/orders", async (req, res) => {
 		});
 	}
 });
+
+router.get('/all/orders', async (req, res) => {
+    try {
+        // Connect to the database
+        await pool.connect();
+
+        // SQL query to fetch all orders
+        const orderQuery = `
+            SELECT
+                dso.CUSTOMER_NAME AS customer_name,
+                doc.BRANCH_ID AS branch_id,
+                db.DESCRIPTION as branch_name,
+                doc.NUMBER AS number,
+                doc.TOTAL_AMOUNT AS total_amount,
+                dso.DATE_CREATED as date_created,
+                dso.TERMS_ID AS terms,
+                dsd.ITEM_ID AS item_id,
+                dsd.ITEM_DESCRIPTION AS item_name,
+                dsd.PRICE AS price,
+                dsd.QTY AS qty,
+                dsd.UOM_ID AS uom
+            FROM dbo.de_so AS dso
+            JOIN dbo.de_document AS doc ON dso.DOCUMENT_ID = doc.DOCUMENT_ID
+            JOIN dbo.de_so_detail AS dsd ON dso.SO_ID = dsd.SO_ID
+            JOIN dbo.de_branch db ON dsd.BRANCH_ID = db.ID
+            WHERE dso.DATE_CREATED >= DATEADD(month, -1, GETDATE())
+            ORDER BY dso.DATE_CREATED;
+        `;
+
+        // Execute the query to fetch all orders
+        const ordersResult = await pool.request().query(orderQuery);
+
+        // Create a map of orders
+        const ordersMap = new Map();
+
+        // Iterate through the orders and add them to the map
+        ordersResult.recordset.forEach(order => {
+            const {
+                customer_name,
+                branch_id,
+                branch_name,
+                number,
+                total_amount,
+                date_created,
+                terms,
+                item_id,
+                item_name,
+                price,
+                qty,
+                uom
+            } = order;
+
+            // Check if the order already exists in the map
+            if (!ordersMap.has(number)) {
+                // If not, create a new order object
+                ordersMap.set(number, {
+                    customer_name,
+                    branch_id,
+                    branch_name,
+                    number,
+                    total_amount,
+                    date_created,
+                    items: []
+                });
+            }
+
+            // Add item details to the order's items array
+            ordersMap.get(number).items.push({
+                item_id,
+                item_name,
+                price,
+                qty,
+                uom,
+                terms
+            });
+        });
+
+        // Convert the map values to an array
+        const orders = Array.from(ordersMap.values());
+
+        // Send the JSON response
+        return res.status(200).json({
+            success: true,
+            orders
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: `Error occurred. Please try again.`
+        });
+    }
+});
+
 
 module.exports = router;
