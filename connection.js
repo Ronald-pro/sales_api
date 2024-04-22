@@ -8,7 +8,8 @@ const config = {
 	database: process.env.DB_NAME,
 	options: {
 		encrypt: true,
-		trustServerCertificate: true // Use this option if you're connecting to Azure SQL Database
+		trustServerCertificate: true, // Use this option if you're connecting to Azure SQL Database
+		requestTimeout: 30000 
 	},
 	port: parseInt(process.env.DB_PORT) || 1433,
 	connectionTimeout: 30000
