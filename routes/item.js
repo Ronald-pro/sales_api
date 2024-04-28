@@ -149,7 +149,7 @@ router.post("/add/order", async (req, res) => {
 		let orderUID = uuidv4();
 		let customer_name = req.body.customer_name;
 		let branch_id = req.body.branch_id;
-		let number = req.body.number;
+		// let number = req.body.number;
 		let total_amount = req.body.total_amount;
 		const companyId = 1;
 		let class_name = "CDEGRN";
@@ -189,12 +189,16 @@ router.post("/add/order", async (req, res) => {
 				message: `Total amount provided does not match calculated total.`
 			});
 		}
+        let orderNumber = 1; // Start from 00000001
+
+        // Format the order number with leading zeros
+        let formattedOrderNumber = orderNumber.toString().padStart(8, "0");
 
 		// Create order document record
 		const documentResult = await pool
 			.request()
 			.input("BRANCH_ID", sql.Int, branch_id)
-			.input("NUMBER", sql.NVarChar, number)
+			.input("NUMBER", sql.NVarChar, formattedOrderNumber)
 			.input("TOTAL_AMOUNT", sql.Decimal, total_amount)
 			.input("CLASS_NAME", sql.NVarChar, class_name)
 			.input("DOC_STATUS_ID", sql.Int, doc_status_id)
